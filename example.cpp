@@ -3,9 +3,9 @@
 #include <string>
 #include <ctime>
 #include <stdexcept>
-#include "class/sparsematrix.h"
-#include "class/absoluteloss.h"
-#include "class/squareloss.h"
+#include "sparsematrix.h"
+#include "absoluteloss.h"
+#include "squareloss.h"
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
@@ -16,7 +16,7 @@ int main(int argc, char * argv[])
 	try
 	{
 		unsigned long int n, m, nnz, r;
-		double regularization_coef, alpha, beta, NegWeight;
+		double regularization_coef, NegWeight;
 		bool verbose, sl, al, abc;
 		po::options_description desc("Allowed options");
 		desc.add_options()
@@ -27,8 +27,6 @@ int main(int argc, char * argv[])
 			("non-zero-entries,e", po::value<unsigned long int>(&nnz)->default_value(20), "number of non-zero entries")
 			("features,k", po::value<unsigned long int>(&r)->default_value(3), "number of features")
 			("regularization-coef,r", po::value<double>(&regularization_coef)->default_value(0.0), "Regularization coefficient. Positive for L1, negative for L2.")
-			("alpha,a", po::value<double>(&alpha)->default_value(0.3), "Alpha coeficient for line search.")
-			("beta,b", po::value<double>(&beta)->default_value(0.3), "Beta coeficient for line search.")
 			("negative-weight,w", po::value<double>(&NegWeight)->default_value(1), "Weight of negative (i.e. null) instances.")
 			("verbose,v", po::value<bool>(&verbose)->implicit_value(true)->default_value(false), "enable verbosity")
 			("sl", po::value<bool>(&sl)->implicit_value(true)->default_value(false), "Use square loss")
@@ -71,8 +69,6 @@ int main(int argc, char * argv[])
 		
 		// Set options
 		optimizer->SetRegCoef(regularization_coef);
-		optimizer->SetAlpha(alpha);
-		optimizer->SetBeta(beta);
 		optimizer->SetNegWeight(NegWeight);
 		
 		// Optimize on all data
@@ -81,9 +77,21 @@ int main(int argc, char * argv[])
 		// Print value of objective function
 		std::cerr << optimizer->Error() << std::endl;
 		
-		// Print users' features (V) and items' features (H)
-		optimizer->PrintV();
-		optimizer->PrintH();
+		// Add new entry
+		int new_entry_row = matrix.n(); // n() gives the number of rows of the matrix. rows are numbered from 0 to n-1, so row number n will be a new row.
+		int new_entry_column = matrix.m() - 1; // m() gives the number of columns. m - 1 is the last column.
+		double new_entry_value = 1;
+		matrix.SetEntry(new_entry_row, new_entry_column, new_entry_value);
+		
+		//Update factorization
+		optimizer->ConstrainedOptimisation(new_entry_row, new_entry_column);
+		
+		// Print reconstructed value for the new entry
+		std::cerr << optimizer->DotProduct(new_entry_row, new_entry_column) << std::endl;
+		
+		// Uncomment to print users' features (V) and items' features (H)
+		//optimizer->PrintV();
+		//optimizer->PrintH();
 	}
 	catch (const std::runtime_error& e)
 	{

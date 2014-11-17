@@ -232,63 +232,6 @@ double MatrixFactorization::LocalError(std::vector<int> & row_update_set, std::v
 	return local_error;
 }
 
-// The agressive optimization technique can lead to suboptimal results, for example because it will more easily delete a feature than create one, which can lead to node without features.
-// This function tries to increase the exploration of the method, by adding for example a little bt of randomness
-void MatrixFactorization::AvoidTraps(node currentNode)
-{
-	std::vector<TIntFltH> * _V = NULL;
-	std::vector<TIntFltH> * _H = NULL;
-	std::vector<double> * _SumV = NULL;
-	std::vector<double> * _SumH = NULL;
-	orientationType _ROW = ROW;
-	orientationType _COLUMN = COLUMN;
-	if (currentNode.orientation == ROW)
-	{
-		_V = &V;
-		_H = &H;
-		_SumV = &SumV;
-		_SumH = &SumH;
-	}
-	else 
-	{
-		_V = &H;
-		_H = &V;
-		_SumV = &SumH;
-		_SumH = &SumV;
-		_ROW = COLUMN;
-		_COLUMN = ROW;
-	}
-
-	// If the node has 0 features, we add the least used feature to that node and its neighbors
-	if ((*_V)[currentNode.id].size() == 0)
-	{
-		//find least used feature
-		int newFeature = std::distance(_SumV->begin(), std::min_element(_SumV->begin(), _SumV->end()));
-		
-		// Add to current node
-		TIntFltH newFeatures;
-		newFeatures[newFeature] = 1;
-		ModifyNode(currentNode, newFeatures);
-		
-		//Add to neighbors
-		RowWiseMatrix::row* rowEntries = NULL;
-		if (currentNode.orientation == ROW)
-			rowEntries = matrix->GetRow(currentNode.id);
-		else
-			rowEntries = matrix->GetCol(currentNode.id);
-
-		for (int i = 0; i < rowEntries->size(); i++)
-		{
-			newFeatures = (*_H)[(*rowEntries)[i].id];
-			if (GetCom(newFeatures, newFeature) == 0)
-			{
-				newFeatures[newFeature] = 1;
-				node neighbor = {_COLUMN, (*rowEntries)[i].id};
-				ModifyNode(neighbor, newFeatures);
-			}
-		}
-	}
-}
 
 // Find the step size of the gradient step using the backtracking line search algorithm. (see Boyd, S. & Vandenberghe, L. (2009). Convex optimization)
 double MatrixFactorization::LineSearch(const RowWiseMatrix::row* rowEntries, TIntFltH & rowFeatures, const std::vector<TIntFltH> & F, node currentNode, const TIntFltH& GradV)
@@ -372,9 +315,6 @@ int MatrixFactorization::ConstrainedOptimisation(std::vector<int> & row_update_s
 	{
 		random_shuffle(shuffle_vector.begin(), shuffle_vector.end());
 		
-		//for (int i = 0; i < shuffle_vector.size(); i++)
-		//	AvoidTraps(shuffle_vector[i]);
-
 		// Iterate through all rows and columns
 		for (int i = 0; i < shuffle_vector.size(); i++, iter++)
 		{	
@@ -418,7 +358,6 @@ void MatrixFactorization::stochasticGradientDescentStep(const RowWiseMatrix::row
 			comSet.insert(CI->first);
 	}
 
-	//*
 	//remove the community membership which U does not share with its neighbors 
 	for (TIntFltH::iterator CI = newFeatures.begin(); CI != newFeatures.end();)
 	{
@@ -426,14 +365,7 @@ void MatrixFactorization::stochasticGradientDescentStep(const RowWiseMatrix::row
 			CI = newFeatures.erase(CI);
 		else ++CI;
 	}
-	//*/
 	
-	/*
-	//add the community membership which U does not share with its neighbors 
-	for (TIntFltH::iterator CI = newFeatures.begin(); CI != newFeatures.end(); ++CI)
-	{
-		comSet.insert(CI->first);
-	}//*/
 
 
 	if (comSet.empty()) { return; }
@@ -453,16 +385,7 @@ void MatrixFactorization::stochasticGradientDescentStep(const RowWiseMatrix::row
 		else if (newFeatures.count(it->first) > 0)
 			newFeatures.erase(it->first);
 	}
-	/*
-	if (ErrorForRow(rowEntries, newFeatures, F, currentNode) > InitError)
-	{
-		std::cerr << LearnRate << " " << initFeat << " " << newFeatures.size() << " " << GradV.size() << " " << comSet.size() << std::endl;
-		std::cerr << ErrorForRow(rowEntries, newFeatures, F, currentNode) << " " << InitError << std::endl;
-		for (TIntFltH::const_iterator it = newFeatures.begin(); it != newFeatures.end(); ++it)
-			std::cerr << it->first << "-" << it->second << " ";
-		std::cerr << std::endl;
-		throw std::runtime_error("Error increased before");
-	}*/
+	
 
 	ModifyNode(currentNode, newFeatures);
 

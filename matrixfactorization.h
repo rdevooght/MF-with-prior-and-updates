@@ -72,7 +72,6 @@ class MatrixFactorization {
 		double LineSearch(const RowWiseMatrix::row* rowEntries, TIntFltH & rowFeatures, const std::vector<TIntFltH> & F, node currentNode, const TIntFltH& GradV);
 		virtual int Optimize();
 		void Epoch();
-		void AvoidTraps(node currentNode);
 		virtual int ConstrainedOptimisation(int i, int j);
 		int ConstrainedOptimisation(std::vector<int> & row_update_set, std::vector<int> & col_update_set);
 		void stochasticGradientDescentStep(const RowWiseMatrix::row* rowEntries, TIntFltH rowFeatures, const std::vector<TIntFltH> & F, node currentNode);

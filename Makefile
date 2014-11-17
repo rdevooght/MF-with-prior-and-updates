@@ -3,7 +3,7 @@ OPT=-O2
 CFLAGS=-c $(OPT)
 LFLAGS=-lboost_program_options -L/usr/local/lib/ $(OPT)
 EXECUTABLE=example
-DIR=class/
+DIR=./
 HEADER=$(DIR)absoluteloss.h $(DIR)squareloss.h $(DIR)matrixfactorization.h $(DIR)sparsematrix.h $(DIR)rowwisematrix.h
 OBJECTS=absoluteloss.o squareloss.o matrixfactorization.o sparsematrix.o rowwisematrix.o
 
